@@ -5,14 +5,15 @@ var config = require("config");
 // 获取参数
 var arguments = process.argv.splice(2);
 
+
 // 命令行参数判断
 if(!arguments || arguments.length < 1){
     console.log("usage: node index <Excle Filename>")
     return;
 }
+const filename = arguments[0] ;
 
-
-const originFilename = `${__dirname}/` + arguments[0] ;
+const originFilename = `${__dirname}/` + filename;
 const originSheetname = '刷卡记录';
 var originWorkSheets  = null
 
@@ -71,10 +72,10 @@ function convert(oriObj) {
    for( var i = 0; i < oriObj.length; i++){
         // 获取考勤日期的月份
         if( oriObj[i] && oriObj[i][0] && oriObj[i][0] === "考勤日期 : " && oriObj[i][2] ) {
-            console.log(oriObj[i][2]);
             // 数据格式 模拟 ["2017/04/01 ~ 04/30 (ACHAR科技)"]
             var tmp = oriObj[i][2].split(" ");
             month = tmp[0].substr(0,7).replace("/","-");
+
         } else if (oriObj[i] && oriObj[i][0] && oriObj[i][0] === "工 号：" && oriObj[i][2]) {
             // 获取每个人每天的记录的记录
             for(var day = 0; day < 31; day++){
@@ -155,7 +156,7 @@ if (targetSheetData) {
 
     var buffer = xlsx.build([{"name": "打卡记录", "data":targetSheetData}]); 
     // 保存文件
-    fs.writeFileSync('user1.xlsx', buffer, 'binary');
+    fs.writeFileSync( filename.replace(".","_转换."), buffer, 'binary');
     console.log("转换完成！");
 }
 
