@@ -1,5 +1,6 @@
 var xlsx = require('node-xlsx');
 var fs = require('fs');
+var config = require("config");
 
 // 获取参数
 var arguments = process.argv.splice(2);
@@ -13,37 +14,26 @@ if(!arguments || arguments.length < 1){
 
 const originFilename = `${__dirname}/` + arguments[0] ;
 const originSheetname = '刷卡记录';
+var originWorkSheets  = null
 
 // 读取文件
 try {
-   const originWorkSheets = xlsx.parse(fs.readFileSync(originFilename)); 
+  originWorkSheets = xlsx.parse(fs.readFileSync(originFilename)); 
 } catch (error) {
-    console.log("读取文件错误！" + originFilename);
+    console.error("读取文件错误！\n" + originFilename + error);
     return;
 }
 
 var originSheetData = null;
 var targetSheetData = null;
 
+
+// 读取配置文件
+const WORK_IN_TIME = config.get('workInTime');
+const WORK_OUT_TIME = config.get('workOutTime');
+
 // 人员对应规则
-const ACCOUNT_PAIR = {
-   "张涛涛":"zhangtaotao",
-    "王长顺":"a",
-    "京东陈":"b",
-    "ACHAR":"c",
-    "王思聪":"d",
-    "边得力":"e",
-    "姜孟女":"f",
-    "孙悟空":"g",
-    "曹丞相":"h",
-    "花木兰":"j",
-    "鲁智深":"z",
-    "虚竹":"x",
-    "芦沟":"cv",
-    "大川":"b",
-    "胡吗辟谷":"n",
-    "春蚕":"n",
-}
+const ACCOUNT_PAIR = config.get('accountPair')
 
 // 转换函数
 // 输入原始数据Sheet的数据，拟合出目标Excel中新Sheet的数据。
@@ -110,8 +100,7 @@ function convert(oriObj) {
                 // 整理字符格式，使用5位的时间表示方法
                 signIn = signIn.length === 4 ? "0" + signIn : signIn;
                 signOut = signOut.length === 4 ? "0" + signOut : signOut;
-                const WORK_IN_TIME = "08:50";
-                const WORK_OUT_TIME = "18:00";
+
 
                 var status = "normal";
                 if(signIn > WORK_IN_TIME && signOut < WORK_OUT_TIME && signIn != signOut ){
