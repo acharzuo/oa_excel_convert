@@ -1,33 +1,43 @@
 var xlsx = require('node-xlsx');
 var fs = require('fs');
+var path = require('path');
 var config = require("config");
+
+// console.log("参数是：");
+// console.log(JSON.stringify(process.argv));
+const originSheetname = '刷卡记录';
 
 // 获取参数
 var arguments = process.argv.splice(2);
 
-
 // 命令行参数判断
 if(!arguments || arguments.length < 1){
-    console.log("usage: node index <Excle Filename>")
+    console.log("usage: node index <Excel Filename>")
     return;
 }
-const filename = arguments[0] ;
-
-console.log(filename);
-
-const originFilename = `${__dirname}/` + filename;
-const originSheetname = '刷卡记录';
-var originWorkSheets  = null
-
-
-return 0;
-
+var filename = arguments[0];
 // 读取文件
 try {
+// console.log(fs.statSync(filename));
+// 文件路径的处理
+    if(fs.statSync(filename).isFile()){
+        filename = filename;
+    } else if (fs.statSync(`${__dirname}/` + filename).isFile()) {
+        filename =`${__dirname}/` + filename;
+    } else {
+        console.error("文件不存在！\n" + arguments[0]);
+        return 1;
+    }
+
+    var originFilename =  filename;
+    var originWorkSheets  = null
+
+
   originWorkSheets = xlsx.parse(fs.readFileSync(originFilename)); 
 } catch (error) {
-    console.error("读取文件错误！\n" + originFilename + error);
-    return;
+    console.error("读取文件错误！\n" + originFilename );
+    console.error(error);
+    return 2;
 }
 
 var originSheetData = null;
@@ -44,7 +54,6 @@ const ACCOUNT_PAIR = config.get('accountPair')
 // 转换函数
 // 输入原始数据Sheet的数据，拟合出目标Excel中新Sheet的数据。
 function convert(oriObj) {
-
     if(typeof oriObj != "object") return;
 
     var ret = [];
@@ -79,7 +88,7 @@ function convert(oriObj) {
         if( oriObj[i] && oriObj[i][0] && oriObj[i][0] === "考勤日期 : " && oriObj[i][2] ) {
             // 数据格式 模拟 ["2017/04/01 ~ 04/30 (ACHAR科技)"]
             var tmp = oriObj[i][2].split(" ");
-            month = tmp[0].substr(0,7).replace("/","-");
+            month = tmp[0].substr(0,7).replace("/","/");
 
         } else if (oriObj[i] && oriObj[i][0] && oriObj[i][0] === "工 号：" && oriObj[i][2]) {
             // 获取每个人每天的记录的记录
@@ -95,7 +104,7 @@ function convert(oriObj) {
                 var account = oriObj[i][10];
                 account = ACCOUNT_PAIR[account];
                 if(!account) {
-                    console.log(oriObj[i][10] + "没有对应的OA账号，已经智能跳过！");
+                    console.log( "[" + oriObj[i][10] + "]  没有对应的OA账号，已经智能跳过！");
                     break;
                 }
                 // record = "15:45\n18:59\n"
@@ -123,7 +132,7 @@ function convert(oriObj) {
                 var line = [];
                 line[0] = index++;
                 line[1] = account;
-                line[2] = month + "-" + oriObj[DATE_LINE_INDEX][day];
+                line[2] = month + "/" + oriObj[DATE_LINE_INDEX][day];
                 line[3] = signIn;
                 line[4] = signOut;
                 line[5] = status;
@@ -152,6 +161,11 @@ for( var i = 0; i < originWorkSheets.length; i++) {
     }
 }
 
+if(originSheetData == null || typeof originSheetData !== "object" ){
+    console.error("不正确的Excel，本程序仅支持得力打开机的导入文件!");
+    return 2;
+}
+
 // 执行转换
 targetSheetData = convert(originSheetData);
 
@@ -161,7 +175,7 @@ if (targetSheetData) {
 
     var buffer = xlsx.build([{"name": "打卡记录", "data":targetSheetData}]); 
     // 保存文件
-    fs.writeFileSync( filename.replace(".","_转换."), buffer, 'binary');
+    fs.writeFileSync( filename.split(".")[0] + "_转换.xlsx"  , buffer, 'binary');
     console.log("转换完成！");
 }
 
