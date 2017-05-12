@@ -13,9 +13,14 @@ if(!arguments || arguments.length < 1){
 }
 const filename = arguments[0] ;
 
+console.log(filename);
+
 const originFilename = `${__dirname}/` + filename;
 const originSheetname = '刷卡记录';
 var originWorkSheets  = null
+
+
+return 0;
 
 // 读取文件
 try {
